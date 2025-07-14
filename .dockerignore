@@ -1,0 +1,19 @@
+# Ignore output and test image directories
+
+# Ignore Git files
+.git
+.gitignore
+
+# Ignore logs or temp files
+*.log
+logs/
+
+# Ignore env files with secrets
+.env
+.env.*
+
+# Ignore temporary or cache files
+*.tmp
+*.bak
+__pycache__/
+*.pyc
