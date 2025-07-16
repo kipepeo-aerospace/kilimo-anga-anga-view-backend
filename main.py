@@ -3,13 +3,14 @@ from azure.storage.blob import BlobServiceClient
 from azure.core.pipeline.transport import RequestsTransport
 import os
 from dotenv import load_dotenv
-from routes import farms, profile, upload, gallery
+from routes import farms, profile, upload, gallery, process
 
 from fastapi.middleware.cors import CORSMiddleware
 
 ##############################################
 # Load environment variables
 ##############################################
+
 load_dotenv()  # Load environment variables from .env file
 
 # Get the connection string securely from the environment
@@ -26,15 +27,7 @@ transport = RequestsTransport(connection_timeout=60, read_timeout=600)
 blob_service = BlobServiceClient.from_connection_string(
     AZURE_STORAGE_CONNECTION_STRING,
     transport=transport)
-# Define container names from environment variables
-RAW_IMAGES_CONTAINER = os.environ.get("RAW_IMAGES_CONTAINER")
-TIF_CONTAINER = os.environ.get("TIFF_CONTAINER")
-MOSAIC_CONTAINER = os.environ.get("MOSAIC_CONTAINER")
-INDICES_CONTAINER = os.environ.get("INDICES_CONTAINER")
 
-# retrieve the key
-
-AZURE_CONNECTION_KEY = os.environ.get("AZURE_CONNECTION_KEY")
 ################################################
 # FastAPI app setup
 ################################################
@@ -60,12 +53,20 @@ app.add_middleware(
 # Attach env variables to app state
 ####################################################
 app.state.blob_client = blob_service
-app.state.raw_images_container = RAW_IMAGES_CONTAINER 
-app.state.tif_container = TIF_CONTAINER
-app.state.mosaic_container = MOSAIC_CONTAINER
-app.state.indices_container = INDICES_CONTAINER 
-app.state.account_key = AZURE_CONNECTION_KEY
-app.state.account_name = blob_service.account_name
+app.state.raw_images_container = os.getenv("RAW_IMAGES_CONTAINER")
+app.state.tiff_container = os.getenv("TIFF_CONTAINER")
+app.state.mosaic_container = os.getenv("MOSAIC_CONTAINER")
+app.state.indices_container = os.getenv("INDICES_CONTAINER")
+
+# sensitive information
+app.state.azure_storage_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+app.state.account_key = os.getenv("AZURE_CONNECTION_KEY")  
+app.state.account_name = blob_service.account_name # this too
+app.state.acr_image = os.getenv("ACR_IMAGE")
+app.state.acr_registry_server = os.getenv("ACR_REGISTRY_SERVER")
+app.state.acr_registry_username = os.getenv("ACR_REGISTRY_USERNAME")
+app.state.acr_registry_password = os.getenv("ACR_REGISTRY_PASSWORD")
+app.state.azure_subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 
 ######################################################
 # Include routers
@@ -74,3 +75,4 @@ app.include_router(farms.router,  tags=["Farms"])
 app.include_router(profile.router, tags=["Profile"])
 app.include_router(upload.router, tags=["Upload"])
 app.include_router(gallery.router, tags=["Gallery"])
+app.include_router(process.router, tags=["Process"])
