@@ -4,22 +4,14 @@ This is the FastAPI backend for the Anga View web application.
 
 ## 📦 Setup Instructions
 
-### 1. Create and activate a virtual environment
+### 1. Install dependencies
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
 ```
 
-### 2. Install dependencies
-
-```bash
-pip install fastapi uvicorn python-dotenv pydantic azure-storage-blob
-```
-
----
-
-### 3. Run the development server
+### 2. Run the development server
 
 ```bash
 uvicorn main:app --reload
@@ -27,21 +19,58 @@ uvicorn main:app --reload
 ```
 ---
 
-## 🔐 Environment Variables
-
-Create a .env file and define:
-```bash
-AZURE_STORAGE_CONNECTION_STRING=your_connection_string_here
-```
----
+## 📁 Project Structure
+backend/
+├── main.py
+├── routes/
+│ ├── farms.py
+│ ├── gallery.py
+│ ├── profile.py
+│ └── upload.py
+├── helpers/
+│ ├── __init__.py
+│ └── container_launcher.py
+├── requirements.txt
+├── DokcerFile
+├── README.md (this document)
+├── .env.example - to give an idea of what needs to be used
+├── .dockerignore
+└── .gitignire
 
 ## 📁 Endpoints (In Progress)
 
-GET /users/{user_id}/profile — returns mock user profile data
+- farms.py
+  - `GET /users/{user_id}/farms` (`get_user_farms`)
 
-GET /users/{user_id}/farms — returns mock farm list
+- profile.py
+  - `GET /users/{user_id}/profile` (`get_user_profile`)
 
-POST /upload — (soon) receives image files and uploads them to Azure Blob Storage
+- upload.py
+  - `POST /upload` (`upload_image`)
 
+- gallery.py
+  - `GET /users/{client_id}/gallery` (`list_user_images`)
+
+- process.py
+  - `POST /process` (`start_processing_job`)
+  - `GET /status` (`get_job_status`)
 
 ---
+
+## 🧠 Notes
+
+Image processing is offloaded to Azure Container Apps via start_processing_container(...).
+
+Blob operations use Azure SDK (azure-storage-blob).
+
+The frontend must supply correct clientId, farmId, and selected vegetation index in API calls.
+
+---
+
+## 🚀 Deployment
+Deployment instructions (containerization, pushing to ACR, deploying to Azure Container Apps) to be added.
+
+---
+
+## ✍️ Maintained By
+Kilimo Anga, an initiative by Kipepeo Aersoapce 

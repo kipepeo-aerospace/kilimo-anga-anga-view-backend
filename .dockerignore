@@ -1,19 +1,29 @@
-# Ignore output and test image directories
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 
-# Ignore Git files
-.git
-.gitignore
-
-# Ignore logs or temp files
-*.log
-logs/
-
-# Ignore env files with secrets
+# Environment files (local-only)
 .env
 .env.*
 
-# Ignore temporary or cache files
-*.tmp
-*.bak
-__pycache__/
-*.pyc
+# SQLite/DB files
+*.db
+*.sqlite3
+
+# Git and version control
+.git/
+.gitignore
+
+# Docs and readmes
+README.md
+
+# Docker-related files
+Dockerfile
+.dockerignore
+
+# OS or editor-specific files
+.DS_Store
+.vscode/
+.idea/

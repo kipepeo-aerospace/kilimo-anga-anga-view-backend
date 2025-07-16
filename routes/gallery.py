@@ -11,9 +11,13 @@ router = APIRouter()
 class ImageFile(BaseModel):
     id: str
     filename: str
+    farmId: str
+    clientId: str
     url: str
-    size: int
+    size: float
     type: str
+    uploadDate: str
+
 
 def generate_signed_url(container_name, account_name, account_key, blob_name):
     sas_token = generate_blob_sas(
@@ -33,37 +37,54 @@ def list_user_images(
     file_type: str = Query(..., regex="^(raw|mosaic|indices)$"),
     request: Request = None
 ):
-    container_env_map = {
-        "raw": request.app.state.raw_images_container,
-        "mosaic": request.app.state.mosaic_container,
-        "indices": request.app.state.indices_container
-    }
-
-    container_name = container_env_map.get(file_type)
-
-    if not container_name:
-        raise HTTPException(status_code=500, detail="Missing container name in env")
-
-    blob_service = request.app.state.blob_client
-    container_client = blob_service.get_container_client(container_name)
-
-    prefix = f"{container_name}/{client_id}/{farm_id}/"
-
     try:
-        blobs = container_client.list_blobs(name_starts_with=prefix)
+        images_container = request.app.state.images_container
         account_name = request.app.state.account_name
         account_key = request.app.state.account_key
-        image_list = []
 
-        for blob in blobs:
-            signed_url = generate_signed_url(container_name, account_name, account_key, blob.name)
+        query = f"""
+            SELECT * FROM c 
+            WHERE c.clientId = @clientId 
+            AND c.farmId = @farmId 
+            AND c.type = @fileType
+        """
+
+        parameters = [
+            {"name": "@clientId", "value": client_id},
+            {"name": "@farmId", "value": farm_id},
+            {"name": "@fileType", "value": file_type}
+        ]
+
+        results = images_container.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        )
+
+        container_env_map = {
+            "raw": request.app.state.raw_images_container,
+            "mosaic": request.app.state.mosaic_container,
+            "indices": request.app.state.indices_container
+        }
+
+        container_name = container_env_map[file_type]
+
+        image_list = []
+        for item in results:
+            blob_path = f"{container_name}/{client_id}/{farm_id}/{item['filename']}"
+            signed_url = generate_signed_url(container_name, account_name, account_key, blob_path)
+
             image_list.append(ImageFile(
-                id=blob.name.split("/")[-1],
-                filename=blob.name.split("/")[-1],
+                id=item["id"],
+                filename=item["filename"],
+                farmId=item["farmId"],
+                clientId=item["clientId"],
                 url=signed_url,
-                size=blob.size,
-                type=file_type
+                size=round(item.get("size", 0) / (1024 * 1024), 2),
+                type=item["type"],
+                uploadDate=item.get("uploadDate", datetime.utcnow().strftime("%Y-%m-%d"))
             ))
+
         return image_list
 
     except Exception as e:

@@ -1,28 +1,21 @@
-# lightweight Python base image
-FROM python:3.10-slim
-
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libgdal-dev \
-    libexpat1 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Use official Python image as base
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-
-# Copy only requirements first (for caching)
+# Copy and install dependencies
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy entire project
 COPY . .
 
+# Expose port for FastAPI
+EXPOSE 8000
 
-# Set default command (no hardcoded input/output paths)
-CMD ["python", "main.py"]
+# Set environment variable for production
+ENV PYTHONUNBUFFERED=1
+
+# Command to run the FastAPI server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
