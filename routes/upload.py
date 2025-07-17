@@ -78,11 +78,24 @@ async def upload_image(
     # first check to see if image metadata exists, if not create a new instance in db
     images_container = request.app.state.images_container
     
-    try:
-        images_container.read_item(item=file.filename, partition_key=clientId)
-    except CosmosResourceNotFoundError:
-        # If not found, create image document
-        imageId = str(uuid.uuid4()) # set a unique ID for every image
+    # Check if image with same filename already exists
+    query = """
+        SELECT * FROM c 
+        WHERE c.filename = @filename AND c.clientId = @clientId AND c.farmId = @farmId
+    """
+    parameters = [
+        {"name": "@filename", "value": file.filename},
+        {"name": "@clientId", "value": clientId},
+        {"name": "@farmId", "value": farmId}
+    ]
+    existing = list(images_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+
+    if not existing:
+        imageId = str(uuid.uuid4())
         image = {
             "id": imageId,
             "filename": file.filename,
@@ -93,5 +106,6 @@ async def upload_image(
             "uploadDate": upload_date
         }
         images_container.create_item(body=image)
+
     
     return {"message": "Upload successful", "path": blob_path}
