@@ -1,5 +1,8 @@
 # Use official Python image as base
-FROM python:3.11-slim
+FROM python:3.10-slim
+
+# Install Azure CLI (Debian/Ubuntu base image)
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
 # Set working directory
 WORKDIR /app

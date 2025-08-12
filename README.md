@@ -19,6 +19,21 @@ uvicorn main:app --reload
 ```
 ---
 
+## 📦 Docker Build & Run
+
+### Build Image
+
+```bash
+docker build -t photogrammetry-pipeline .
+```
+
+### Run Container
+
+```bash
+docker run --env-file .env -p 8000:8000 angaview-backend
+```
+
+
 ## 📁 Project Structure
 backend/
 ├── main.py

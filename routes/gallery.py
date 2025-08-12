@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Request, HTTPException, Query
 from pydantic import BaseModel
 from typing import List
-from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+from azure.storage.blob import generate_blob_sas, BlobSasPermissions, BlobServiceClient
 from datetime import datetime, timedelta
 import os
 import traceback
+from helpers.image_conversion import convert_tif_to_jpg_and_upload
 
 router = APIRouter()
 
@@ -17,7 +18,6 @@ class ImageFile(BaseModel):
     size: float
     type: str
     uploadDate: str
-
 
 def generate_signed_url(container_name, account_name, account_key, blob_name):
     sas_token = generate_blob_sas(
@@ -38,29 +38,10 @@ def list_user_images(
     request: Request = None
 ):
     try:
-        images_container = request.app.state.images_container
         account_name = request.app.state.account_name
         account_key = request.app.state.account_key
-
-        query = f"""
-            SELECT * FROM c 
-            WHERE c.clientId = @clientId 
-            AND c.farmId = @farmId 
-            AND c.type = @fileType
-        """
-
-        parameters = [
-            {"name": "@clientId", "value": client_id},
-            {"name": "@farmId", "value": farm_id},
-            {"name": "@fileType", "value": file_type}
-        ]
-
-        results = images_container.query_items(
-            query=query,
-            parameters=parameters,
-            enable_cross_partition_query=True
-        )
-
+        
+        # Map container name based on file type
         container_env_map = {
             "raw": request.app.state.raw_images_container,
             "mosaic": request.app.state.mosaic_container,
@@ -69,19 +50,58 @@ def list_user_images(
 
         container_name = container_env_map[file_type]
 
-        image_list = []
-        for item in results:
-            blob_path = f"{container_name}/{client_id}/{farm_id}/{item['filename']}"
-            signed_url = generate_signed_url(container_name, account_name, account_key, blob_path)
+        if not container_name:
+            raise HTTPException(status_code=404, detail="Container not found for the specified file type.")
 
+        
+        # Get the list of blobs the images container
+        blob_service_client = request.app.state.blob_client # get the blob service client from app state
+        images_container = blob_service_client.get_container_client(container_name)
+        
+        blobs = images_container.list_blobs(name_starts_with=f"{container_name}/{client_id}/{farm_id}/") 
+        results = list(blobs)
+        
+        # Generate signed URLs for each image
+        image_list = []
+        
+        for item in results:
+            filename = item.name.split('/')[-1]
+
+            print(f"[DEBUG] Getting image: {filename} an image of type: {file_type} for farm: {farm_id}")
+            
+            # Check if the file is a TIF and convert it to JPG for viewing
+            if filename.lower().endswith(".tif"):
+                # Build the expected JPG filename
+                jpg_filename = filename[:-4] + ".jpg"  # replace .tif with .jpg
+                jpg_blob_path = f"{container_name}/{client_id}/{farm_id}/{jpg_filename}"
+
+                jpg_blob_client = images_container.get_blob_client(jpg_blob_path)
+
+                # Check if JPG already exists
+                try:
+                    # Check if JPG exists
+                    jpg_blob_client.get_blob_properties()
+                    # JPG exists, so use it and skip conversion
+                    continue
+                except Exception:
+                    # JPG does not exist, convert and upload
+                    filename = convert_tif_to_jpg_and_upload(
+                        blob_service_client,
+                        container_name,
+                        item.name
+                    )
+
+            blob_path = f"{container_name}/{client_id}/{farm_id}/{filename}"
+            signed_url = generate_signed_url(container_name, account_name, account_key, blob_path)
+             
             image_list.append(ImageFile(
-                id=item["id"],
-                filename=item["filename"],
-                farmId=item["farmId"],
-                clientId=item["clientId"],
+                id=file_type,
+                filename=filename,
+                farmId=farm_id,
+                clientId=client_id,
                 url=signed_url,
                 size=round(item.get("size", 0) / (1024 * 1024), 2),
-                type=item["type"],
+                type=file_type,
                 uploadDate=item.get("uploadDate", datetime.utcnow().strftime("%Y-%m-%d"))
             ))
 
