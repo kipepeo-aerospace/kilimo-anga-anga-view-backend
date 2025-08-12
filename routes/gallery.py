@@ -85,11 +85,7 @@ def list_user_images(
                     continue
                 except Exception:
                     # JPG does not exist, convert and upload
-                    filename = convert_tif_to_jpg_and_upload(
-                        blob_service_client,
-                        container_name,
-                        item.name
-                    )
+                    continue
 
             blob_path = f"{container_name}/{client_id}/{farm_id}/{filename}"
             signed_url = generate_signed_url(container_name, account_name, account_key, blob_path)

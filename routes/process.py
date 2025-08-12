@@ -44,12 +44,14 @@ def start_processing_job(payload: ProcessRequest, request: Request):
     jobs_container.create_item(body=job.dict())
 
     # Launch processing container
+    indices_csv = ",".join(payload.indices)  # Join list into CSV string
+
     start_processing_container(
         request.app,
         client_id=payload.clientId,
         farm_id=payload.farmId,
         job_id=job_id,
-        vegetation_index=payload.indices[0]  # assuming only VARI for now
+        vegetation_index=indices_csv  # assuming only VARI for now
     )
 
     return job
