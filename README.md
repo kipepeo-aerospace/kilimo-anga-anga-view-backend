@@ -24,7 +24,7 @@ uvicorn main:app --reload
 ### Build Image
 
 ```bash
-docker build -t photogrammetry-pipeline .
+docker build -t angaview-backend .
 ```
 
 ### Run Container
@@ -45,6 +45,7 @@ backend/
 ├── helpers/
 │ ├── __init__.py
 │ └── container_launcher.py
+│ └── image_conversion.py
 ├── requirements.txt
 ├── DokcerFile
 ├── README.md (this document)
@@ -52,7 +53,7 @@ backend/
 ├── .dockerignore
 └── .gitignire
 
-## 📁 Endpoints (In Progress)
+## 📁 Endpoints
 
 - farms.py
   - `GET /users/{user_id}/farms` (`get_user_farms`)

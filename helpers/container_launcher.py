@@ -1,4 +1,5 @@
-from azure.identity import DefaultAzureCredential
+#from azure.identity import DefaultAzureCredential # Uncomment if using Azure locally
+from azure.identity import ClientSecretCredential # comment if using Azure locally
 from azure.mgmt.containerinstance import ContainerInstanceManagementClient
 from azure.mgmt.containerinstance.models import (
     ContainerGroup,
@@ -16,18 +17,11 @@ import logging
 # Azure Container Instance setup
 ###############################################
 ACR_RESOURCE_GROUP="KilimoAnga"
-ACR_LOCATION="eastus"
+ACR_LOCATION="southafricanorth"
 ACR_CPU=2
 ACR_MEMORY=4.0
 ACR_RESTART_POLICY="Never"
 ACR_OS_TYPE="Linux"
-
-
-###############################################
-# Initialize Azure credentials
-###############################################
-credential = DefaultAzureCredential()
-
 
 ###############################################
 # Function to call the pipeline via ACR
@@ -38,6 +32,7 @@ def start_processing_container(app, client_id: str, farm_id: str, job_id: str, v
     print(f"Launching container with clientId={client_id}, farmId={farm_id}, index={vegetation_index}")
 
     # Get the Azure subscription ID from app state
+    credential = app.state.azure_credetials  # Use ClientSecretCredential for Azure authentication
     subscription_id = app.state.azure_subscription_id
 
     # Identify ACR holding the pipeline image
@@ -78,7 +73,7 @@ def start_processing_container(app, client_id: str, farm_id: str, job_id: str, v
 
     # Define resource requirements for the container
     resources = ResourceRequirements(
-        requests=ResourceRequests(cpu=2.0, memory_in_gb=4.0)
+        requests=ResourceRequests(cpu=ACR_CPU, memory_in_gb=ACR_MEMORY)
     )
 
     # Create the container instance
@@ -93,9 +88,9 @@ def start_processing_container(app, client_id: str, farm_id: str, job_id: str, v
     
     # ACI needs container group
     group = ContainerGroup(
-        location="South Africa North",
+        location=ACR_LOCATION,
         containers=[container],
-        os_type=OperatingSystemTypes.linux,
+        os_type=ACR_OS_TYPE,
         image_registry_credentials=[
             ImageRegistryCredential(
                 server=acr_login_server,
@@ -103,7 +98,7 @@ def start_processing_container(app, client_id: str, farm_id: str, job_id: str, v
                 password=acr_password,
             )
         ],
-        restart_policy=ContainerGroupRestartPolicy.never,
+        restart_policy=ACR_RESTART_POLICY,
     )
 
     # The API callto create and run the container group
