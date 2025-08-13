@@ -36,6 +36,7 @@ blob_service = BlobServiceClient.from_connection_string(
 
 origins = [
     "http://localhost:5173",  # frontend dev server
+    "https://angaview.kipepeo.space", # hosted dev server
 ]
 
 ######################################################
