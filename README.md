@@ -4,6 +4,14 @@ This is the FastAPI backend for the Anga View web application.
 
 ## 📦 Setup Instructions
 
+### 1. Get into a python environment and activate it
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+
+```
+
 ### 1. Install dependencies
 
 ```bash
